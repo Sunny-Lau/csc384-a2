@@ -49,6 +49,7 @@ class ReflexAgent(Agent):
 
         "Add more of your code here if you want to"
 
+        # print legalMoves[chosenIndex]
         return legalMoves[chosenIndex]
 
     def evaluationFunction(self, currentGameState, action):
@@ -74,7 +75,44 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        # print newPos
+        # print len(newFood.asList())
+        # print newGhostStates
+        # print newScaredTimes
+
+        def manhattanDistance(point1, point2):
+            return abs(point1[0] - point2[0]) + abs(point1[1] - point2[1])
+
+        # ghostDistances = [manhattanDistance(ghost.getPosition(), newPos) for ghost in newGhostStates]
+        # food = newFood.asList()
+        # foodDistances = [manhattanDistance(f, newPos) for f in food]
+        
+        # score = - min(foodDistances)
+        # # if min(ghostDistances) < 3:
+        # #     score = 2 ** (sum(ghostDistances))
+        # # print score
+        # return score
+
+        newFoodList = newFood.asList()
+        currentFoodList = currentGameState.getFood().asList()
+
+        distanceToFood = [manhattanDistance(x, newPos) for x in newFoodList]
+        closestFoodDistance = min(distanceToFood) if distanceToFood else 0
+
+        distanceToGhosts = [manhattanDistance(x.getPosition(), newPos) for x in newGhostStates]
+        closestGhostDistance = min(distanceToGhosts) if distanceToGhosts else 0
+
+        score = - closestFoodDistance
+        if newPos in currentFoodList:
+            score += closestFoodDistance
+
+        if all(t == 0 for t in newScaredTimes):
+            if closestGhostDistance < 2:
+                score = - 999999
+
+        return score
+
+        # return successorGameState.getScore()
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -129,7 +167,31 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns the total number of agents in the game
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def miniMax(state, numMoves):
+            player = numMoves % state.getNumAgents()
+
+            bestMove = None
+            if state.isWin() or state.isLose() or numMoves == state.getNumAgents() * self.depth:
+                return (bestMove, self.evaluationFunction(state))
+
+            if player == 0:
+                value = - float("inf")
+            else:
+                value = float("inf")
+
+            for move in state.getLegalActions(player):
+                nxtState = state.generateSuccessor(player, move)
+                nxtMove, nxtVal = miniMax(nxtState, numMoves + 1)
+                if player == 0 and value < nxtVal:
+                    value, bestMove = nxtVal, move
+                if player != 0 and value > nxtVal:
+                    value, bestMove = nxtVal, move
+            return (bestMove, value)
+
+        bestMove, bestVal = miniMax(gameState, 0)
+
+        return bestMove
+        # util.raiseNotDefined()
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -141,8 +203,39 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def alphaBeta(state, alpha, beta, numMoves):
+            player = numMoves % state.getNumAgents()
 
+            bestMove = None
+            if state.isWin() or state.isLose() or numMoves == state.getNumAgents() * self.depth:
+                return (bestMove, self.evaluationFunction(state))
+
+            if player == 0:
+                value = - float("inf")
+            else:
+                value = float("inf")
+
+            for move in state.getLegalActions(player):
+                nxtState = state.generateSuccessor(player, move)
+                nxtMove, nxtVal = alphaBeta(nxtState, alpha, beta, numMoves + 1)
+                if player == 0:
+                    if value < nxtVal:
+                        value, bestMove = nxtVal, move
+                    if value >= beta:
+                        return bestMove, value
+                    alpha = max(alpha, value)
+                if player != 0:
+                    if value > nxtVal:
+                        value, bestMove = nxtVal, move
+                    if value <= alpha:
+                        return bestMove, value
+                    beta = min(beta, value)
+            return bestMove, value
+
+        bestMove, bestVal = alphaBeta(gameState, - float("inf"), float("inf"), 0)
+        return bestMove
+        # util.raiseNotDefined()
+        
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
       Your expectimax agent (question 4)
@@ -156,6 +249,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
+
         util.raiseNotDefined()
 
 def betterEvaluationFunction(currentGameState):
