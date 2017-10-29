@@ -75,23 +75,6 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        # print newPos
-        # print len(newFood.asList())
-        # print newGhostStates
-        # print newScaredTimes
-
-        def manhattanDistance(point1, point2):
-            return abs(point1[0] - point2[0]) + abs(point1[1] - point2[1])
-
-        # ghostDistances = [manhattanDistance(ghost.getPosition(), newPos) for ghost in newGhostStates]
-        # food = newFood.asList()
-        # foodDistances = [manhattanDistance(f, newPos) for f in food]
-        
-        # score = - min(foodDistances)
-        # # if min(ghostDistances) < 3:
-        # #     score = 2 ** (sum(ghostDistances))
-        # # print score
-        # return score
 
         newFoodList = newFood.asList()
         currentFoodList = currentGameState.getFood().asList()
@@ -123,6 +106,12 @@ def scoreEvaluationFunction(currentGameState):
       (not reflex agents).
     """
     return currentGameState.getScore()
+
+
+def manhattanDistance(point1, point2):
+    """ return the manattan distance between point1 and point2. """
+    return abs(point1[0] - point2[0]) + abs(point1[1] - point2[1])
+
 
 class MultiAgentSearchAgent(Agent):
     """
@@ -249,7 +238,30 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
+        def expectiMax(state, numMoves):
+            player = numMoves % state.getNumAgents()
 
+            bestMove = None
+            if state.isWin() or state.isLose() or numMoves == state.getNumAgents() * self.depth:
+                return (bestMove, self.evaluationFunction(state))
+
+            if player == 0:
+                value = - float("inf")
+            else:
+                value = 0
+
+            for move in state.getLegalActions(player):
+                nxtState = state.generateSuccessor(player, move)
+                nxtMove, nxtVal = expectiMax(nxtState, numMoves + 1)
+                if player == 0 and value < nxtVal:
+                    value, bestMove = nxtVal, move
+                if player != 0:
+                    value = value + nxtVal * 1.0 / len(state.getLegalActions(player))
+            return (bestMove, value)
+
+        bestMove, bestVal = expectiMax(gameState, 0)
+
+        return bestMove
         util.raiseNotDefined()
 
 def betterEvaluationFunction(currentGameState):
@@ -260,7 +272,37 @@ def betterEvaluationFunction(currentGameState):
       DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    currentPosition = currentGameState.getPacmanPosition()
+
+    foods = currentGameState.getFood().asList()
+    foodDistances = [manhattanDistance(f, currentPosition) for f in foods]
+    minFood = min(foodDistances) if foodDistances else 0
+    avgDistance = sum(foodDistances) / len(foodDistances) if foodDistances else 0
+
+    ghosts = currentGameState.getGhostPositions()
+    ghostDistances = [manhattanDistance(g, currentPosition) for g in ghosts]
+    minGhost = min(ghostDistances) if ghostDistances else 0
+
+    capsules = currentGameState.getCapsules()
+    capsulesDistances = [manhattanDistance(c, currentPosition) for c in capsules]
+    minCapsules = min(capsulesDistances) if capsulesDistances else 0
+
+    score = - (1000 * len(foods) + 800 * len(capsules) + 100 * minFood + 10 * avgDistance ) + 10 * minGhost  + 100 * currentGameState.getScore()
+
+    if len(foods) == 1:
+        score = - (100 * manhattanDistance(foods[0], currentPosition) + 10 * avgDistance) + 10 * minGhost + 100 * currentGameState.getScore()
+
+    # score += random.randint(1, 80)
+
+    if currentGameState.isWin():
+        score = 99999999 
+    if currentGameState.isLose():
+        score = - 99999999
+
+    return score + random.randint(1, 80)
+
+    # util.raiseNotDefined()
+
 
 # Abbreviation
 better = betterEvaluationFunction
